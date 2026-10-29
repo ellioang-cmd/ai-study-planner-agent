@@ -9,6 +9,10 @@ export default function Home() {
   const [deadline, setDeadline] = useState("");
   const [hours, setHours] = useState(2);
   const [difficulty, setDifficulty] = useState("Medium");
+  const [chatMessage, setChatMessage] = useState("");
+const [chatReply, setChatReply] = useState("");
+const [chatLoading, setChatLoading] = useState(false);
+const [chatError, setChatError] = useState("");
 
   
 const [loaded, setLoaded] = useState(false);
@@ -39,6 +43,40 @@ useEffect(() => {
   }
 }, [assignments, loaded]);
 
+  
+async function askGemini(e) {
+  e.preventDefault();
+
+  if (!chatMessage.trim() || chatLoading) return;
+
+  setChatLoading(true);
+  setChatError("");
+  setChatReply("");
+
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: chatMessage,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "AI request failed.");
+    }
+
+    setChatReply(data.reply || "No response received.");
+  } catch (error) {
+    setChatError(error.message || "Unable to contact Gemini.");
+  } finally {
+    setChatLoading(false);
+  }
+}
 
   function addAssignment(e) {
     e.preventDefault();
@@ -158,7 +196,7 @@ const explanation =
             personalized study recommendations.
           </p>
           <p className="mt-2 text-sm text-emerald-400">
-            No API key required
+           Powered by Google Gemini AI
           </p>
         </header>
 
@@ -273,6 +311,50 @@ const explanation =
             ))}
           </div>
         </section>
+        
+<section className="mt-8 rounded-2xl bg-slate-900 p-6">
+  <h2 className="mb-4 text-2xl font-semibold text-cyan-400">
+    Ask Gemini AI Study Assistant
+  </h2>
+
+  <p className="mb-4 text-slate-300">
+    Ask questions about studying, assignments, exams,
+    or time management.
+  </p>
+
+  <form onSubmit={askGemini} className="space-y-4">
+    <textarea
+      value={chatMessage}
+      onChange={(e) => setChatMessage(e.target.value)}
+      placeholder="Example: Create a study plan for my cybersecurity exam."
+      className="w-full rounded-lg bg-slate-800 p-3 text-white"
+      rows={4}
+      required
+    />
+
+    <button
+      type="submit"
+      disabled={chatLoading}
+      className="rounded-lg bg-cyan-500 px-6 py-3 font-bold text-slate-950 disabled:opacity-50"
+    >
+      {chatLoading ? "Gemini is thinking..." : "Ask Gemini AI"}
+    </button>
+  </form>
+
+  {chatError && (
+    <p className="mt-4 text-red-400">{chatError}</p>
+  )}
+
+  {chatReply && (
+    <div className="mt-6 whitespace-pre-wrap rounded-lg bg-slate-800 p-4 leading-7">
+      <h3 className="mb-3 font-semibold text-emerald-400">
+        Gemini AI Response
+      </h3>
+      {chatReply}
+    </div>
+  )}
+</section>
+
       </div>
     </main>
   );
